@@ -1,10 +1,9 @@
 #include <BluetoothSerial.h>
 #include <Button2.h>
 #include <ELMduino.h>
-#include <SPI.h>
 #include <TFT_eSPI.h>
 
-//#include "FreeFonts.h"
+#include "FreeFonts.h"
 //#include "OpelLogo.h"
 
 #define ESP_BLUETOOTH_NAME "HornyBitch"
@@ -12,7 +11,7 @@
 #define BUTTON_1_PIN 0
 #define BUTTON_2_PIN 35
 
-#define SKIP_BT // <-- uncomment for demo mode
+//#define SKIP_BT // <-- uncomment for demo mode
 
 BluetoothSerial _bluetoothSerial;
 ELM327 _elm327;
@@ -56,13 +55,11 @@ void setup()
   _tftSprite.createSprite(240, 135);
   _tftSprite.setTextWrap(false, false);
 
-  _tft.fillScreen(TFT_BLACK);
-  _tft.setTextSize(3);
-  //  _tft.setFreeFont(FF17);
-
   //  _tft.setSwapBytes(true);
   //  _tft.pushImage(0, 0, 240, 135, logo);
   //  delay(1000);
+
+  _tft.setFreeFont(FF20);
 
 #ifdef SKIP_BT
 
@@ -70,32 +67,52 @@ void setup()
 
 #else
 
+  _tft.fillScreen(TFT_BLACK);
+
   _tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  _tft.setTextDatum(TL_DATUM);
   _tft.drawString("OBD 1", 10, 10);
 
   //  if (!_bluetoothSerial.connect("OBDII"))
-  if (!_bluetoothSerial.connect(_rgu8MACAddress))
+  if (_bluetoothSerial.connect(_rgu8MACAddress))
+  {
+    _tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    _tft.setTextDatum(L_BASELINE);
+    _tft.drawString("Success", 10, 125);
+
+    delay(500);
+  }
+  else
   {
     Serial.println("Couldn't connect to OBD scanner - Phase 1");
 
-    _tft.fillScreen(TFT_BLACK);
     _tft.setTextColor(TFT_RED, TFT_BLACK);
-    _tft.drawString("OBD 1 error", 10, 10);
+    _tft.setTextDatum(L_BASELINE);
+    _tft.drawString("Error", 10, 125);
 
     while (1);
   }
 
   _tft.fillScreen(TFT_BLACK);
   _tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  _tft.setTextDatum(TL_DATUM);
   _tft.drawString("OBD 2", 10, 10);
 
-  if (!_elm327.begin(_bluetoothSerial, false, 2000))
+  if (_elm327.begin(_bluetoothSerial, false, 2000))
+  {
+    _tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    _tft.setTextDatum(L_BASELINE);
+    _tft.drawString("Success", 10, 125);
+
+    delay(500);
+  }
+  else
   {
     Serial.println("Couldn't connect to OBD scanner - Phase 2");
 
-    _tft.fillScreen(TFT_BLACK);
     _tft.setTextColor(TFT_RED, TFT_BLACK);
-    _tft.drawString("OBD 2 error", 10, 10);
+    _tft.setTextDatum(L_BASELINE);
+    _tft.drawString("Error", 10, 125);
 
     while (1);
   }
@@ -106,10 +123,12 @@ void setup()
 
   _tft.fillScreen(TFT_BLACK);
   _tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  _tft.drawString("Connected", 10, 10);
+  _tft.setTextDatum(ML_DATUM);
+  _tft.drawString("Connected", 10, _tft.height() / 2);
   delay(1000);
   _tft.fillScreen(TFT_BLACK);
 
+  // Buttons aren't used right now
   //  button_init();
 }
 
@@ -159,7 +178,8 @@ void loop()
   static float fOilPressure;
   static float fOilPressureOld;
 
-  button_loop();
+  // Buttons aren't used right now
+  //  button_loop();
 
   if (bForceDisplayUpdate)
   {
@@ -301,6 +321,7 @@ void loop()
         {
           case ELM_GETTING_MSG:
             {
+              // do nothing and wait for next round
             }
             break;
 
@@ -331,6 +352,7 @@ void loop()
         {
           case ELM_GETTING_MSG:
             {
+              // do nothing and wait for next round
             }
             break;
 
@@ -361,6 +383,7 @@ void loop()
         {
           case ELM_GETTING_MSG:
             {
+              // do nothing and wait for next round
             }
             break;
 
@@ -373,7 +396,9 @@ void loop()
 
           default:
             {
-              _enRequest = RequestOilTemp;
+              // skip oil stuff for now
+              //              _enRequest = RequestOilTemp;
+              _enRequest = RequestDPFSoot;
             }
             break;
         }
@@ -391,6 +416,7 @@ void loop()
         {
           case ELM_GETTING_MSG:
             {
+              // do nothing and wait for next round
             }
             break;
 
@@ -421,6 +447,7 @@ void loop()
         {
           case ELM_GETTING_MSG:
             {
+              // do nothing and wait for next round
             }
             break;
 
@@ -471,29 +498,23 @@ void UpdateDisplay(int32_t i32Soot, int32_t i32Kilometer, int32_t i32Burn, int32
 
         if (i32Burn > 0)
         {
-          String sText = String(i32Soot) + " %";
-
-          _tftSprite.setTextSize(7);
-
+          _tftSprite.setFreeFont(FF20);
           _tftSprite.fillSprite(TFT_RED);
           _tftSprite.setTextColor(TFT_WHITE, TFT_RED);
-          _tftSprite.drawString(sText, _tftSprite.width() / 2 - _tftSprite.textWidth(sText) / 2, _tftSprite.height() / 2 - _tftSprite.fontHeight() / 2);
+          _tftSprite.setTextDatum(MC_DATUM);
+          _tftSprite.drawString(String(i32Soot) + " %", _tftSprite.width() / 2, _tftSprite.height() / 2);
 
           _tftSprite.pushSprite(0, 0);
-
-          //delay(2000);
         }
         else
         {
           if (i32BurnLast > 0)
           {
-            String sText = "Done";
-
-            _tftSprite.setTextSize(7);
-
+            _tftSprite.setFreeFont(FF20);
             _tftSprite.fillSprite(TFT_GREEN);
             _tftSprite.setTextColor(TFT_WHITE, TFT_GREEN);
-            _tftSprite.drawString(sText, _tftSprite.width() / 2 - _tftSprite.textWidth(sText) / 2, _tftSprite.height() / 2 - _tftSprite.fontHeight() / 2);
+            _tftSprite.setTextDatum(MC_DATUM);
+            _tftSprite.drawString("Done", _tftSprite.width() / 2, _tftSprite.height() / 2);
 
             _tftSprite.pushSprite(0, 0);
 
@@ -503,39 +524,38 @@ void UpdateDisplay(int32_t i32Soot, int32_t i32Kilometer, int32_t i32Burn, int32
           {
             _tftSprite.fillSprite(TFT_BLACK);
 
-            _tftSprite.setTextSize(2);
-            _tftSprite.setCursor(10, 14);
+            _tftSprite.setFreeFont(FF17);
+            _tftSprite.setCursor(10, 24);
             _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
             _tftSprite.print("DPF soot:");
 
-            _tftSprite.setTextSize(3);
-            _tftSprite.setCursor(125, 10);
+            _tftSprite.setFreeFont(FF19);
+            _tftSprite.setCursor(110, 30);
             _tftSprite.setTextColor(u32ColorSoot, TFT_BLACK);
             _tftSprite.printf("%i %%", i32Soot);
 
-            _tftSprite.setTextSize(2);
-            _tftSprite.setCursor(10, 40);
+            _tftSprite.setFreeFont(FF17);
+            _tftSprite.setCursor(10, 54);
             _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
             _tftSprite.print("DPF dist:");
 
-            _tftSprite.setTextSize(3);
-            _tftSprite.setCursor(125, 36);
+            _tftSprite.setFreeFont(FF19);
+            _tftSprite.setCursor(110, 60);
             _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
             _tftSprite.printf("%i km", i32Kilometer);
 
-            _tftSprite.setTextSize(2);
-            _tftSprite.setCursor(10, 66);
+            _tftSprite.setFreeFont(FF17);
+            _tftSprite.setCursor(10, 84);
             _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
             _tftSprite.print("DPF burn:");
 
-            _tftSprite.setTextSize(3);
-            _tftSprite.setCursor(125, 62);
+            _tftSprite.setFreeFont(FF19);
+            _tftSprite.setCursor(110, 90);
             _tftSprite.setTextColor(u32ColorBurn, TFT_BLACK);
             _tftSprite.printf("%s", i32Burn > 0 ? "Active" : "Idle");
-            _tftSprite.setTextSize(2);
 
-            _tftSprite.drawRect(10, 90, 202, 45, TFT_WHITE);
-            _tftSprite.fillRect(11, 91, 2 * i32Soot, 43, u32ColorSoot);
+            _tftSprite.drawRect(10, 100, 202, 35, TFT_WHITE);
+            _tftSprite.fillRect(11, 101, 2 * i32Soot, 33, u32ColorSoot);
           }
         }
       }
@@ -545,23 +565,23 @@ void UpdateDisplay(int32_t i32Soot, int32_t i32Kilometer, int32_t i32Burn, int32
       {
         _tftSprite.fillSprite(TFT_BLACK);
 
-        _tftSprite.setTextSize(2);
-        _tftSprite.setCursor(10, 14);
+        _tftSprite.setFreeFont(FF17);
+        _tftSprite.setCursor(10, 24);
         _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
         _tftSprite.print("Oil temp:");
 
-        _tftSprite.setTextSize(3);
-        _tftSprite.setCursor(125, 10);
+        _tftSprite.setFreeFont(FF19);
+        _tftSprite.setCursor(110, 30);
         _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
         _tftSprite.printf("%i °C", i32OilTemp);
 
-        _tftSprite.setTextSize(2);
-        _tftSprite.setCursor(10, 40);
+        _tftSprite.setFreeFont(FF17);
+        _tftSprite.setCursor(10, 54);
         _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
         _tftSprite.print("Oil bar:");
 
-        _tftSprite.setTextSize(3);
-        _tftSprite.setCursor(125, 36);
+        _tftSprite.setFreeFont(FF19);
+        _tftSprite.setCursor(110, 60);
         _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
         _tftSprite.printf("%.1f bar" , fOilPressure);
 
