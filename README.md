@@ -60,7 +60,7 @@ https://user-images.githubusercontent.com/28293949/181034516-2630e44f-c084-4aaf-
 
 `uint8_t _rgu8MACAddress[6] = { 0x86, 0xDC, 0x52, 0xB5, 0xF6, 0xF1 };`
 
-8. Open the `DPF.ino` in Arduino IDE and press `CTRL + R` to compile and check for errors.
+8. Press `CTRL + R` to compile and check for errors.
 
 ![DPFBurn_Arduino_Compile](https://user-images.githubusercontent.com/28293949/181036190-5c348f22-97b3-4194-b9ec-9da280b8d395.jpg)
 
