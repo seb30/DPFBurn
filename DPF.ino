@@ -12,11 +12,12 @@
 #define BUTTON_1_PIN 0
 #define BUTTON_2_PIN 35
 
-//#define SKIP_BT // <-- uncomment for demo mode
+#define SKIP_BT // <-- uncomment for demo mode
 
 BluetoothSerial _bluetoothSerial;
 ELM327 _elm327;
 TFT_eSPI _tft = TFT_eSPI(135, 240);
+TFT_eSprite _tftSprite = TFT_eSprite(&_tft);
 uint8_t _rgu8MACAddress[6] = { 0x86, 0xDC, 0x52, 0xB5, 0xF6, 0xF1 };
 
 enum tRequest
@@ -35,8 +36,8 @@ enum tPage
   Page2
 } _enPage = Page1;
 
-bool _bSwitchMode = false;
-bool _bSwitchPage = false;
+volatile bool _bSwitchMode = false;
+volatile bool _bSwitchPage = false;
 
 Button2 _button1(BUTTON_1_PIN);
 Button2 _button2(BUTTON_2_PIN);
@@ -47,12 +48,16 @@ void setup()
   Serial.println("Attempting to connect to ELM327 ...");
 
   _bluetoothSerial.begin(ESP_BLUETOOTH_NAME, true);
-  _bluetoothSerial.setPin("1234");
+  //  _bluetoothSerial.setPin("1234");
 
   _tft.init();
   _tft.setRotation(3);
+
+  _tftSprite.createSprite(240, 135);
+  _tftSprite.setTextWrap(false, false);
+
   _tft.fillScreen(TFT_BLACK);
-  _tft.setTextSize(2);
+  _tft.setTextSize(3);
   //  _tft.setFreeFont(FF17);
 
   //  _tft.setSwapBytes(true);
@@ -105,7 +110,7 @@ void setup()
   delay(1000);
   _tft.fillScreen(TFT_BLACK);
 
-  button_init();
+  //  button_init();
 }
 
 void button_init()
@@ -253,7 +258,7 @@ void loop()
 
         UpdateDisplay(soot, km, burn, oilTemp, oilPressure);
 
-        delay(500);
+        delay(random(500, 1000));
 
         oilTemp = random(20, 90);
         oilPressure = random(0, 10) * 1.2345;
@@ -287,76 +292,156 @@ void loop()
 
     case RequestDPFSoot:
       {
+        Serial.println("RequestDPFSoot");
+
         // read DPF soot
         i32Temp = (int32_t)_elm327.processPID(0x22, 0x336A, 1, 1);
 
-        if (i32Temp)
+        switch (_elm327.nb_rx_state)
         {
-          i32Soot = i32Temp;
+          case ELM_GETTING_MSG:
+            {
+            }
+            break;
 
-          _enRequest = RequestDPFKilometer;
+          case ELM_SUCCESS:
+            {
+              i32Soot = i32Temp;
+
+              // no break here -> fallthrough to next case
+            }
+
+          default:
+            {
+              _enRequest = RequestDPFKilometer;
+            }
+            break;
         }
       }
       break;
 
     case RequestDPFKilometer:
       {
+        Serial.println("RequestDPFKilometer");
+
         // read DPF km since last regen
         i32Temp = (int32_t)_elm327.processPID(0x22, 0x3039, 1, 2);
 
-        if (i32Temp)
+        switch (_elm327.nb_rx_state)
         {
-          i32Kilometer = _elm327.responseByte_1 << 8 | _elm327.responseByte_0;
+          case ELM_GETTING_MSG:
+            {
+            }
+            break;
 
-          _enRequest = RequestDPFBurn;
+          case ELM_SUCCESS:
+            {
+              i32Kilometer = _elm327.responseByte_1 << 8 | _elm327.responseByte_0;
+
+              // no break here -> fallthrough to next case
+            }
+
+          default:
+            {
+              _enRequest = RequestDPFBurn;
+            }
+            break;
         }
       }
       break;
 
     case RequestDPFBurn:
       {
+        Serial.println("RequestDPFBurn");
+
         // read DPF burn status
         i32Temp = (int32_t)_elm327.processPID(0x22, 0x20F2, 1, 1);
 
-        if (i32Temp)
+        switch (_elm327.nb_rx_state)
         {
-          i32Burn = i32Temp;
+          case ELM_GETTING_MSG:
+            {
+            }
+            break;
 
-          _enRequest = RequestOilTemp;
+          case ELM_SUCCESS:
+            {
+              i32Burn = i32Temp;
+
+              // no break here -> fallthrough to next case
+            }
+
+          default:
+            {
+              _enRequest = RequestOilTemp;
+            }
+            break;
         }
       }
       break;
 
     case RequestOilTemp:
       {
+        Serial.println("RequestOilTemp");
+
         // read oil temperatur
         i32Temp = (int32_t)_elm327.processPID(0x22, 0x1154, 1, 1);
 
-        if (i32Temp)
+        switch (_elm327.nb_rx_state)
         {
-          i32OilTemp = i32Temp - 40;
+          case ELM_GETTING_MSG:
+            {
+            }
+            break;
 
-          _enRequest = RequestOilPressure;
+          case ELM_SUCCESS:
+            {
+              i32OilTemp = i32Temp - 40;
+
+              // no break here -> fallthrough to next case
+            }
+
+          default:
+            {
+              _enRequest = RequestOilPressure;
+            }
+            break;
         }
       }
       break;
 
     case RequestOilPressure:
       {
+        Serial.println("RequestOilPressure");
+
         // read oil pressure
         i32Temp = (int32_t)_elm327.processPID(0x22, 0x115C, 1, 1);
 
-        if (i32Temp)
+        switch (_elm327.nb_rx_state)
         {
-          fOilPressure = ((i32Temp * 0.65) - 17.5) / 14.5037738;
+          case ELM_GETTING_MSG:
+            {
+            }
+            break;
 
-          _enRequest = RequestDPFSoot;
+          case ELM_SUCCESS:
+            {
+              fOilPressure = ((i32Temp * 0.65) - 17.5) / 14.5037738;
+
+              // no break here -> fallthrough to next case
+            }
+
+          default:
+            {
+              _enRequest = RequestDPFSoot;
+            }
+            break;
         }
       }
       break;
   }
 
-  if ((bForceDisplayUpdate) || (i32Soot != i32SootOld) || (i32Kilometer != i32KilometerOld) || (i32Burn != i32BurnOld) || (i32OilTemp != i32OilTempOld) || (fOilPressure != fOilPressureOld))
+  if ((bForceDisplayUpdate) || ((Page1 == _enPage) && ((i32Soot != i32SootOld) || (i32Kilometer != i32KilometerOld) || (i32Burn != i32BurnOld))) || ((Page2 == _enPage) && ((i32OilTemp != i32OilTempOld) || (fOilPressure != fOilPressureOld))))
   {
     bForceDisplayUpdate = false;
 
@@ -388,15 +473,15 @@ void UpdateDisplay(int32_t i32Soot, int32_t i32Kilometer, int32_t i32Burn, int32
         {
           String sText = String(i32Soot) + " %";
 
-          _tft.setTextSize(7);
+          _tftSprite.setTextSize(7);
 
-          _tft.fillScreen(TFT_RED);
-          _tft.setTextColor(TFT_WHITE, TFT_RED);
-          _tft.drawString(sText, _tft.width() / 2 - _tft.textWidth(sText) / 2, _tft.height() / 2 - _tft.fontHeight() / 2);
+          _tftSprite.fillSprite(TFT_RED);
+          _tftSprite.setTextColor(TFT_WHITE, TFT_RED);
+          _tftSprite.drawString(sText, _tftSprite.width() / 2 - _tftSprite.textWidth(sText) / 2, _tftSprite.height() / 2 - _tftSprite.fontHeight() / 2);
 
-          delay(2000);
+          _tftSprite.pushSprite(0, 0);
 
-          _tft.fillScreen(TFT_BLACK);
+          //delay(2000);
         }
         else
         {
@@ -404,75 +489,89 @@ void UpdateDisplay(int32_t i32Soot, int32_t i32Kilometer, int32_t i32Burn, int32
           {
             String sText = "Done";
 
-            _tft.setTextSize(7);
+            _tftSprite.setTextSize(7);
 
-            _tft.fillScreen(TFT_GREEN);
-            _tft.setTextColor(TFT_WHITE, TFT_GREEN);
-            _tft.drawString(sText, _tft.width() / 2 - _tft.textWidth(sText) / 2, _tft.height() / 2 - _tft.fontHeight() / 2);
+            _tftSprite.fillSprite(TFT_GREEN);
+            _tftSprite.setTextColor(TFT_WHITE, TFT_GREEN);
+            _tftSprite.drawString(sText, _tftSprite.width() / 2 - _tftSprite.textWidth(sText) / 2, _tftSprite.height() / 2 - _tftSprite.fontHeight() / 2);
+
+            _tftSprite.pushSprite(0, 0);
 
             delay(5000);
+          }
+          else
+          {
+            _tftSprite.fillSprite(TFT_BLACK);
 
-            _tft.fillScreen(TFT_BLACK);
+            _tftSprite.setTextSize(2);
+            _tftSprite.setCursor(10, 14);
+            _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+            _tftSprite.print("DPF soot:");
+
+            _tftSprite.setTextSize(3);
+            _tftSprite.setCursor(125, 10);
+            _tftSprite.setTextColor(u32ColorSoot, TFT_BLACK);
+            _tftSprite.printf("%i %%", i32Soot);
+
+            _tftSprite.setTextSize(2);
+            _tftSprite.setCursor(10, 40);
+            _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+            _tftSprite.print("DPF dist:");
+
+            _tftSprite.setTextSize(3);
+            _tftSprite.setCursor(125, 36);
+            _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+            _tftSprite.printf("%i km", i32Kilometer);
+
+            _tftSprite.setTextSize(2);
+            _tftSprite.setCursor(10, 66);
+            _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+            _tftSprite.print("DPF burn:");
+
+            _tftSprite.setTextSize(3);
+            _tftSprite.setCursor(125, 62);
+            _tftSprite.setTextColor(u32ColorBurn, TFT_BLACK);
+            _tftSprite.printf("%s", i32Burn > 0 ? "Active" : "Idle");
+            _tftSprite.setTextSize(2);
+
+            _tftSprite.drawRect(10, 90, 202, 45, TFT_WHITE);
+            _tftSprite.fillRect(11, 91, 2 * i32Soot, 43, u32ColorSoot);
           }
         }
-
-        i32BurnLast = i32Burn;
-
-        _tft.setTextSize(2);
-
-        _tft.setCursor(10, 10);
-        _tft.setTextColor(TFT_WHITE, TFT_BLACK);
-        _tft.print("DPF soot:");
-
-        _tft.setCursor(130, 10);
-        _tft.setTextColor(u32ColorSoot, TFT_BLACK);
-        _tft.printf("%i %%     ", i32Soot);
-
-        _tft.setCursor(10, 31);
-        _tft.setTextColor(TFT_WHITE, TFT_BLACK);
-        _tft.print("DPF dist:");
-
-        _tft.setCursor(130, 31);
-        _tft.setTextColor(TFT_WHITE, TFT_BLACK);
-        _tft.printf("%i km     ", i32Kilometer);
-
-        _tft.setCursor(10, 52);
-        _tft.setTextColor(TFT_WHITE, TFT_BLACK);
-        _tft.print("DPF burn:");
-
-        _tft.setTextSize(3);
-        _tft.setCursor(130, 52);
-        _tft.setTextColor(u32ColorBurn, TFT_BLACK);
-        _tft.printf("%s     ", i32Burn > 0 ? "Active" : "Idle");
-        _tft.setTextSize(2);
-
-        _tft.drawRect(10, 85, 202, 50, TFT_WHITE);
-        _tft.fillRect(11 + 2 * i32Soot, 86, 200 - 2 * i32Soot, 48, TFT_BLACK);
-        _tft.fillRect(11, 86, 2 * i32Soot, 48, u32ColorSoot);
       }
       break;
 
     case Page2:
       {
-        _tft.setCursor(10, 10);
-        _tft.setTextColor(TFT_WHITE, TFT_BLACK);
-        _tft.print("Oil temp:");
+        _tftSprite.fillSprite(TFT_BLACK);
 
-        _tft.setCursor(130, 10);
-        _tft.setTextColor(TFT_WHITE, TFT_BLACK);
-        _tft.printf("%i °C     ", i32OilTemp);
+        _tftSprite.setTextSize(2);
+        _tftSprite.setCursor(10, 14);
+        _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+        _tftSprite.print("Oil temp:");
 
-        _tft.setCursor(10, 31);
-        _tft.setTextColor(TFT_WHITE, TFT_BLACK);
-        _tft.print("Oil bar:");
+        _tftSprite.setTextSize(3);
+        _tftSprite.setCursor(125, 10);
+        _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+        _tftSprite.printf("%i °C", i32OilTemp);
 
-        _tft.setCursor(130, 31);
-        _tft.setTextColor(TFT_WHITE, TFT_BLACK);
-        _tft.printf("%.1f bar     " , fOilPressure);
+        _tftSprite.setTextSize(2);
+        _tftSprite.setCursor(10, 40);
+        _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+        _tftSprite.print("Oil bar:");
+
+        _tftSprite.setTextSize(3);
+        _tftSprite.setCursor(125, 36);
+        _tftSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+        _tftSprite.printf("%.1f bar" , fOilPressure);
 
         // show red stripe in case of DPF burn
-        _tft.fillRect(0, _tft.height() - 10, _tft.width(), _tft.height(), i32Burn > 0 ? TFT_RED : TFT_BLACK);
+        _tftSprite.fillRect(0, _tftSprite.height() - 10, _tftSprite.width(), _tftSprite.height(), i32Burn > 0 ? TFT_RED : TFT_BLACK);
       }
       break;
   }
+
+  i32BurnLast = i32Burn;
+
+  _tftSprite.pushSprite(0, 0);
 }
