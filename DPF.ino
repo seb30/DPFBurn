@@ -47,7 +47,7 @@ void setup()
   Serial.println("Attempting to connect to ELM327 ...");
 
   _bluetoothSerial.begin(ESP_BLUETOOTH_NAME, true);
-  //  _bluetoothSerial.setPin("1234");
+  _bluetoothSerial.setPin("1234");
 
   _tft.init();
   _tft.setRotation(3);
