@@ -6,3 +6,11 @@ lilygo_t_display.upload.extra_flags=
 Lines added, IDE restarted, uploading worked..."
 
 [https://forum.arduino.cc/t/how-to-display-image-on-ttgo-t-display-esp32/1174923/2]
+
+---
+
+Stay with esp32 version 2.0.17
+
+"Note: Since version 3.0.0 this library does not support legacy pairing (using fixed PIN consisting of 4 digits)."
+
+[https://github.com/espressif/arduino-esp32/tree/master/libraries/BluetoothSerial]
