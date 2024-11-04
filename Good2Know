@@ -1,0 +1,8 @@
+"I had the same error. There were two lines missing in .arduino15/packages/esp32/hardware/esp32/2.0.17/boards.txt:
+
+lilygo_t_display.upload.flags=
+lilygo_t_display.upload.extra_flags=
+
+Lines added, IDE restarted, uploading worked..."
+
+[https://forum.arduino.cc/t/how-to-display-image-on-ttgo-t-display-esp32/1174923/2]
